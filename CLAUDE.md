@@ -18,6 +18,12 @@ csi -q -s test/run-tests.scm
 
 # Run a Church program
 csi -q -s church/church.scm myfile.scm
+
+# Run a ProbMods chapter (extracts and evals ~~~~ code blocks)
+csi -q -s run-chapter.scm probmods-chapters/md/conditioning.md
+
+# Run all chapters
+for f in probmods-chapters/md/*.md; do echo "=== $f ==="; csi -q -s run-chapter.scm "$f"; done
 ```
 
 ## Architecture

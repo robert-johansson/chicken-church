@@ -4,26 +4,50 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This repository contains the function reference documentation for the **Church** probabilistic programming language. Church is a Scheme-like language designed for probabilistic modeling and Bayesian inference, built on top of JavaScript.
+This is a native Chicken Scheme reimplementation of the Church probabilistic programming language. Church is a Scheme-based language for generative models and Bayesian inference. Since Church *is* Scheme, parsing comes for free — the implementation focuses on the probabilistic runtime: elementary random primitives (ERPs), conditioning, and inference.
 
-The entire reference is a single HTML file (`ref.html`) that documents all built-in functions. It references an external stylesheet at `css/ref.css` (not included in the repo).
+The `webchurch/` directory contains a vendored copy of the original JavaScript-based Church implementation for reference. The `ref.html` file is standalone documentation for Church's built-in functions.
 
-## Structure of ref.html
+## Commands
 
-Each function is documented in a `<div class="function">` block containing:
-- `<code class="function-name">` — function signature with parameters
-- `<code class="aliases">` — alternate names (e.g., `car` for `first`, `+` for `plus`)
-- `<div class="description">` — prose description
-- `<table>` — parameter list with name, type, and optional description
+```bash
+# Install dependencies (Chicken Scheme 5+ required)
+chicken-install srfi-1 srfi-27 srfi-69
 
-Parameters in `[brackets]` are optional. Types include `real`, `nat`, `boolean`, `string`, `function`, `list`, `pair`, and parameterized types like `list<real>`.
+# Run the test suite (164 tests)
+csi -q -s test/run-tests.scm
 
-## Key Language Concepts
+# Run a Church program
+csi -q -s church/church.scm myfile.scm
+```
 
-Church functions fall into these categories:
-- **Probability distributions**: `flip`, `gaussian`, `uniform`, `beta`, `gamma`, `dirichlet`, `exponential`, `multinomial` — all accept an optional `conditionedValue` parameter for conditioning
-- **Inference**: `enumeration-query`, `rejection-query`, `mh-query`, `mh-query-scored`, `conditional` — strategies include enumeration, rejection sampling, and Metropolis-Hastings
-- **Stochastic memoization**: `DPmem` (Dirichlet Process memoization)
-- **List/functional primitives**: standard Scheme operations (`map`, `fold`, `filter`, `cons`/`pair`, `car`/`first`, `cdr`/`rest`, etc.)
-- **Math**: standard numeric and trigonometric functions
-- **I/O**: `read-csv`, `read-file`, `write-csv`, `display`
+## Architecture
+
+All modules live in `church/` and are loaded via `(include ...)` — there is no Chicken egg/module system. Load order matters (declared in `church/church.scm`).
+
+**Module dependency chain:**
+
+```
+erps.scm          ← Foundation: ERP sampling, log-density, proposals (srfi-27)
+builtins.scm      ← Church-compatible list/math/string/set utilities (srfi-1, srfi-69)
+inference.scm     ← condition, factor, rejection-query (uses chicken condition for abort)
+trace.scm         ← Address stack + trace hash-table for MCMC (srfi-69)
+enumerate.scm     ← Exact enumeration via call/cc; forks on discrete ERPs
+mh.scm            ← Single-site trace-based Metropolis-Hastings
+dpmem.scm         ← Dirichlet Process memoization (Chinese Restaurant Process)
+conditional.scm   ← Generic query interface dispatching to enumerate/rejection/mh
+church.scm        ← Entry point: loads all modules, installs aliases, provides church-load
+```
+
+**Key design patterns:**
+
+- **ERP handler dispatch**: The `current-erp-handler` parameter (in `erps.scm`) is the central extension point. Outside inference it just samples; inference engines swap in their own handler to intercept ERP calls for trace management (MH), continuation capture (enumeration), or rejection.
+- **Macros for queries**: `rejection-query`, `enumeration-query`, `mh-query`, and `conditional` are all `syntax-rules` macros. The last forms are always the query expression and condition expression; preceding forms are model definitions.
+- **Aliasing**: `church.scm` uses `set!` to override Scheme builtins (`iota`, `fold`, `sort`, etc.) with Church-compatible versions after all modules are loaded. Some builtins (like `gensym`, `display`) can't be overridden because Chicken's macro expander uses them.
+- **Church-prefixed names**: Many builtins use a `church-` prefix internally (`church-and`, `church-or`, `church->`, `church-fold`, etc.) to avoid conflicts with Scheme builtins during module loading. Tests use these prefixed names directly.
+
+## Testing
+
+The single test file `test/run-tests.scm` uses a custom `check`/`check-approx` harness (no external test framework). Tests cover: arithmetic, list operations, higher-order functions, set operations, statistics, string operations, `mem`, rejection/enumeration/MH queries, support change in MH, and the `conditional` interface. Tests exit with code 1 on any failure.
+
+Statistical tests (MH sampling) use `check-approx` with tolerances, so occasional flaky failures on probabilistic tests are possible.

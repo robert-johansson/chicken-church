@@ -156,7 +156,7 @@ Test Results: 164 passed, 0 failed
 
 ## Background
 
-This project is a native Scheme reimplementation of the Church probabilistic programming language. The original implementation, [webchurch](https://github.com/probmods/webchurch), compiles Church to JavaScript and runs in the browser or Node.js. A copy of webchurch is included in the `webchurch/` directory for reference.
+This project is a native Scheme reimplementation of the Church probabilistic programming language. The original implementation, [webchurch](https://github.com/probmods/webchurch), compiles Church to JavaScript and runs in the browser or Node.js.
 
 For an introduction to probabilistic programming with Church, see [Probabilistic Models of Cognition](https://probmods.org/) by Noah Goodman and Joshua Tenenbaum.
 

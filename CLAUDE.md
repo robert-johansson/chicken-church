@@ -6,7 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a native Chicken Scheme reimplementation of the Church probabilistic programming language. Church is a Scheme-based language for generative models and Bayesian inference. Since Church *is* Scheme, parsing comes for free — the implementation focuses on the probabilistic runtime: elementary random primitives (ERPs), conditioning, and inference.
 
-The `webchurch/` directory contains a vendored copy of the original JavaScript-based Church implementation for reference. The `ref.html` file is standalone documentation for Church's built-in functions.
 
 ## Commands
 
